@@ -1,3 +1,4 @@
+# FIFO
 class Queue():
     def __init__(self):
         self.queue = []
@@ -11,6 +12,7 @@ class Queue():
     def size(self):
         return len(self.queue)
 
+# FILO
 class Stack():
     def __init__(self):
         self.stack = []
@@ -23,4 +25,3 @@ class Stack():
             return None
     def size(self):
         return len(self.stack)
-
