@@ -1,6 +1,9 @@
+from collections import deque
+
+
 class Stack():
     def __init__(self):
-        self.stack = []
+        self.stack = deque()
 
     def push(self, value):
         self.stack.append(value)
@@ -8,8 +11,6 @@ class Stack():
     def pop(self):
         if self.size() > 0:
             return self.stack.pop()
-        else:
-            return None
 
     def size(self):
         return len(self.stack)
@@ -17,42 +18,41 @@ class Stack():
 
 def earliest_ancestor(ancestors, starting_node):
     graph = dict()
+    for tpl in ancestors:
+        if tpl[1] not in graph:
+            graph[tpl[1]] = set()
+        graph[tpl[1]].add(tpl[0])
 
-    # loop over all tuples
-    for t in ancestors:
-        # check if tuple exists
-        if t[1] not in graph:
-            # create if not
-            graph[t[1]] = set()
-        # add edge
-        graph[t[1]].add(t[0])
+    def solve(starting_vertex):
+        nonlocal graph
+        if starting_vertex not in graph:
+            return -1
 
-        # start depth-first search
+        distances = dict()
+
         def dfs(starting_vertex):
-            nonlocal graph
-            if starting_vertex not in graph:
-                return -1
             visited = set()
-            s = Stack()
-            distances = dict()
-            s.push([starting_vertex])
-            while s.size() > 0:
-                path = s.pop()
-                vtx = path[-1]
-                if vtx not in visited:
-                    if vtx in graph:
-                        # we can traverse it
-                        for neighbor in graph[vtx]:
-                            path_new = path[:]
-                            path_new.append(neighbor)
-                            s.push(path_new)
-                            if neighbor not in graph:
-                                distances[neighbor] = len(path_new)
-                                continue
-                        visited.add(vtx)
-            return min([k for k, v in distances.items() if v == max([v for k, v in distances.items()])])
+            stack = Stack()
+            stack.push([starting_vertex])
+            while stack.size() > 0:
+                path = stack.pop()
+                vertex = path[-1]  # last element in the array storing the path
+                if vertex not in visited and vertex in graph:
+                    for neighbor in graph[vertex]:
+                        path_new = path[:]  # path.copy()
+                        path_new.append(neighbor)
+                        stack.push(path_new)
+                        if neighbor not in graph:
+                            callback(neighbor, path_new)
+                            continue
+                    visited.add(vertex)
 
-        return dfs(starting_node)
+        def callback(neighbor, path_new):
+            distances[neighbor] = len(path_new)
+
+        dfs(starting_vertex)
+        return min([k for k, v in distances.items() if v == max([v for k, v in distances.items()])])
+    return solve(starting_node)
 
 # 1) find the furthest element that we can go to from the given node in a dgraph (dgraph = directed graph)
 # 2) select the algorithm based on the problem - BFS if you want to find the shortest paths or DFS if you want to find the longest paths
