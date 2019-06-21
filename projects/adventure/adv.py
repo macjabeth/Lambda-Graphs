@@ -24,6 +24,161 @@ player = Player("Name", world.startingRoom)
 # Fill this out
 traversalPath = []
 
+class Queue():
+    def __init__(self):
+        self.queue = []
+    def enqueue(self, value):
+        self.queue.append(value)
+    def dequeue(self):
+        if self.size() > 0:
+            return self.queue.pop(0)
+        else:
+            return None
+    def size(self):
+        return len(self.queue)
+
+class Stack():
+    def __init__(self):
+        self.stack = []
+    def push(self, value):
+        self.stack.append(value)
+    def pop(self):
+        if self.size() > 0:
+            return self.stack.pop()
+        else:
+            return None
+    def size(self):
+        return len(self.stack)
+
+def create_graph(start):
+    # create an empty set to store visited nodes
+    visited = set()
+    # create empty dictionary to store graph
+    graph = dict()
+    # create an empty stack and push a path to the starting dest
+    s = Stack()
+    s.push([start])
+    # while the stack is not empty
+    while s.size() > 0:
+        # pop the first path
+        path = s.pop()
+        # grab the dest from the end of the path
+        room = path[-1]
+        # if the dest has not been visited
+        if room not in visited:
+            # mark it as visited
+            visited.add(room)
+            # add room exits mapped to adjacent ids
+            graph[room.id] = dict()
+            # then add a path to all of its neighbors in the top of the stack
+            for x in room.getExits():
+                # add direction to graph
+                graph[room.id][x] = '?'
+                # copy the path
+                path_copy = list(path)
+                # append neighbor to the top of the copy
+                path_copy.append(room.getRoomInDirection(x))
+                # push copy
+                s.push(path_copy)
+    return graph
+
+# bfs to find shortest path
+def bfs(start, destination):
+    # create an empty set to store visited nodes
+    visited = set()
+    # create an empty queue and enqueue a path to the starting vertex
+    q = Queue()
+    q.enqueue([start])
+    # while the queue is not empty
+    while q.size() > 0:
+        # dequeue the first path
+        path = q.dequeue()
+        # grab the room from the end of the path
+        r = path[-1]
+        # if our room is equal to our destination room
+        if r == destination:
+            # return path
+            return path
+        # otherwise if the room has not been visited
+        if r not in visited:
+            # mark it as visited
+            visited.add(r)
+            # then add a path to all of its neighbors in the back of the queue
+            for x in r.getExits():
+                # set neightbor room
+                neighbor = r.getRoomInDirection(x)
+                # copy the path
+                path_copy = list(path)
+                # append neighbor to the back of the copy
+                path_copy.append(neighbor)
+                # enqueue copy
+                q.enqueue(path_copy)
+
+
+def convert_path(rooms):
+    path = []
+    current = rooms.pop(0)
+    while len(rooms) > 0:
+        next_room = rooms.pop(0)
+        # find which direction its in
+        for x in current.getExits():
+            if next_room == current.getRoomInDirection(x):
+                path.append(x)
+                current = next_room
+                break
+    player.currentRoom = current
+    return path
+
+
+def get_unexplored_dir(room_id):
+    exits = graph.get(room_id)
+    if exits is not None:
+        for direction, rid, in exits.items():
+            if rid == '?':
+                return direction
+    return None
+
+
+direction_map = { 'n': 's', 'e': 'w', 's': 'n', 'w': 'e' }
+for d1, d2 in direction_map.items(): direction_map[d2] = d1
+def get_opposite_dir(dir):
+    return direction_map[dir]
+
+# collect graph
+graph = create_graph(player.currentRoom)
+# start loop
+while True:
+    # check if we've moved
+    if len(traversalPath) > 0:
+        last_move = traversalPath[-1]
+        new_room = player.currentRoom.getRoomInDirection(last_move)
+        graph[player.currentRoom.id][last_move] = new_room.id
+        graph[new_room.id][get_opposite_dir(last_move)] = player.currentRoom.id
+        player.currentRoom = new_room
+    # pick random unexplored direction from current room
+    next_dir = get_unexplored_dir(player.currentRoom.id)
+    if next_dir is None:
+        found_room = False
+        current_room = player.currentRoom
+        # travel back and find another room that has an unexplored direction
+        for last_move in traversalPath[::-1]:
+            # get the opposite direction
+            opp_move = get_opposite_dir(last_move)
+            # set our new player room to the room we traveled from
+            current_room = current_room.getRoomInDirection(opp_move)
+            # does that room have an unexplored exit?
+            next_dir = get_unexplored_dir(current_room.id)
+            # if not... then continue the loop
+            if next_dir is None: continue
+            path = bfs(player.currentRoom, current_room)
+            path = convert_path(path)
+            # add moves onto our traversal path
+            traversalPath += path
+            # break out
+            found_room = True
+            break
+        if not found_room: break
+    traversalPath.append(next_dir)
 
 
 # TRAVERSAL TEST
